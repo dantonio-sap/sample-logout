@@ -1,0 +1,92 @@
+_schema-version: "3.2"
+ID: sample-logout
+version: 0.0.1
+modules:
+- name: sample-logout-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: sample-logout-destination-service
+    parameters:
+      content-target: true
+  - name: sample-logout_html_repo_host
+    parameters:
+      service-key:
+        name: sample-logout_html_repo_host-key
+  - name: uaa_sample-logout
+    parameters:
+      service-key:
+        name: uaa_sample-logout-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: sample_logout_sample_logout_html_repo_host
+          ServiceInstanceName: sample-logout-html5-app-host-service
+          ServiceKeyName: sample-logout_html_repo_host-key
+          sap.cloud.service: sample-logout
+        - Authentication: OAuth2UserTokenExchange
+          Name: sample_logout_uaa_sample_logout
+          ServiceInstanceName: sample-logout-xsuaa-service
+          ServiceKeyName: uaa_sample-logout-key
+          sap.cloud.service: sample-logout
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: sample-logout-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: sample-logout_html_repo_host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - ui.zip
+      name: ui
+      target-path: resources/
+- name: ui
+  type: html5
+  path: ui
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: sample-logout-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: sample-logout-destination-service
+    service-plan: lite
+- name: sample-logout_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: sample-logout-html5-app-host-service
+    service-plan: app-host
+- name: uaa_sample-logout
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: sample-logout-xsuaa-service
+    service-plan: application
+parameters:
+  deploy_mode: html5-repo
